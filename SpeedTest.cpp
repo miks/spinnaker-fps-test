@@ -22,25 +22,32 @@ void run(CameraPtr pCam)
   CIntegerPtr ptrHeight = nodeMap.GetNode("Height");
   CIntegerPtr ptrOffsetX = nodeMap.GetNode("OffsetX");
   CIntegerPtr ptrOffsetY = nodeMap.GetNode("OffsetY");
+  CFloatPtr   ptrExposureTime = nodeMap.GetNode("ExposureTime");
 
   // Set aqcuisition mode to continuous:
   pCam->AcquisitionMode.SetValue(AcquisitionModeEnums::AcquisitionMode_Continuous);
 
   CEnumerationPtr ptrPixelFormat = nodeMap.GetNode("PixelFormat");
   CEnumerationPtr ptrAcquisitionMode = nodeMap.GetNode("AcquisitionMode");
-
+  CEnumerationPtr ptrExposureAuto = nodeMap.GetNode("ExposureAuto");
 
   bool customSettings = false;
 
   int width = ptrWidth->GetMax();
   int height = ptrHeight->GetMax();
+  float exposureTime = ptrExposureTime->GetMin();
   string pixelFormat = "BayerRG8";
+  string autoExposure = "Off";
 
   if(customSettings) {
     width = 100;
     height = 100;
+    exposureTime = 4;
     pixelFormat = "Mono8";
   }
+
+  // set exposure time
+  ptrExposureTime->SetValue(exposureTime);
 
   // set width
   ptrWidth->SetValue(width);
@@ -48,16 +55,24 @@ void run(CameraPtr pCam)
   // set height
   ptrHeight->SetValue(height);
 
+  //
+  // set pixel format
+  //
   // Retrieve the desired entry node from the enumeration node
   CEnumEntryPtr ptrPixelFormatNode = ptrPixelFormat->GetEntryByName(pixelFormat.c_str());
-  // Retrieve the integer value from the entry node
-  int64_t ptrPixelFormatValue = ptrPixelFormatNode->GetValue();
   // Set integer as new value for enumeration node
-  ptrPixelFormat->SetIntValue(ptrPixelFormatValue);
+  ptrPixelFormat->SetIntValue(ptrPixelFormatNode->GetValue());
 
+  //
+  // set auto exposure mode
+  //
+  // Retrieve the desired entry node from the enumeration node
+  CEnumEntryPtr ptrExposureAutoNode = ptrExposureAuto->GetEntryByName(autoExposure.c_str());
+  // Set integer as new value for enumeration node
+  ptrExposureAuto->SetIntValue(ptrExposureAutoNode->GetValue());
 
   // Get camera device information.
-  cout << "Camera Device Information" << endl
+  cout << "Camera device information" << endl
     << "=========================" << endl;
   cout << "Model            : "
     << CStringPtr( nodeMap.GetNode( "DeviceModelName") )->GetValue() << endl;
@@ -68,11 +83,15 @@ void run(CameraPtr pCam)
   cout << endl;
 
   // Camera settings
-  cout << "Camera Device Settings" << endl << "======================" << endl;
+  cout << "Camera device settings" << endl << "======================" << endl;
   cout << "Acquisition mode : "
     << ptrAcquisitionMode->GetCurrentEntry()->GetSymbolic() << endl;
   cout << "Pixel format     : "
     << ptrPixelFormat->GetCurrentEntry()->GetSymbolic() << endl;
+  cout << "Auto exposure    : "
+    << ptrExposureAuto->GetCurrentEntry()->GetSymbolic() << endl;
+  cout << "Exposure time    : "
+    << ptrExposureTime->GetValue() << endl;
   cout << "Width            : "
     << ptrWidth->GetValue() << endl;
   cout << "Height           : "
@@ -91,8 +110,8 @@ void run(CameraPtr pCam)
   bool warmup = true;
   long frameCounter = 0;
 
-  cout << "Real time fps measuring" << endl
-    << "=========================" << endl;
+  cout << "Camera fps measuring" << endl
+    << "====================" << endl;
 
   while (flagLoop)
   {
@@ -110,11 +129,13 @@ void run(CameraPtr pCam)
         warmup = false;
       }
       else {
-        cout << "FPS: " << frameCounter << endl;
+        cout << frameCounter << "fps" << endl;
       }
       frameCounter = 0;
     }
   }
+
+  cout << endl;
 
   // Deinitialize camera
   pCam->EndAcquisition();
@@ -123,7 +144,7 @@ void run(CameraPtr pCam)
 
 void raiseFlag(int param)
 {
-    flagLoop = false;
+  flagLoop = false;
 }
 
 int main()
