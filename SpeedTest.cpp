@@ -107,7 +107,6 @@ void run(CameraPtr pCam)
 
   time_t timeBegin = time(0);
   int tick = 0;
-  bool warmup = true;
   long frameCounter = 0;
 
   cout << "Camera fps measuring" << endl
@@ -123,14 +122,11 @@ void run(CameraPtr pCam)
 
     if (timeNow - tick >= 1)
     {
-      tick++;
       // skip first measurment as it will not have correct fps due to warm-up
-      if(warmup == true) {
-        warmup = false;
-      }
-      else {
+      if(tick > 0)
         cout << frameCounter << "fps" << endl;
-      }
+
+      tick++;
       frameCounter = 0;
     }
   }
