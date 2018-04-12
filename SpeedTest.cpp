@@ -46,9 +46,6 @@ void run(CameraPtr pCam)
     pixelFormat = "Mono8";
   }
 
-  // set exposure time
-  ptrExposureTime->SetValue(exposureTime * 1000.0); // pass value in microseconds
-
   // set width
   ptrWidth->SetValue(width);
 
@@ -70,6 +67,9 @@ void run(CameraPtr pCam)
   CEnumEntryPtr ptrExposureAutoNode = ptrExposureAuto->GetEntryByName(autoExposure.c_str());
   // Set integer as new value for enumeration node
   ptrExposureAuto->SetIntValue(ptrExposureAutoNode->GetValue());
+
+  // set exposure time
+  ptrExposureTime->SetValue(exposureTime * 1000.0); // pass value in microseconds
 
   // Get camera device information.
   cout << "Camera device information" << endl
