@@ -35,19 +35,19 @@ void run(CameraPtr pCam)
 
   int width = ptrWidth->GetMax();
   int height = ptrHeight->GetMax();
-  float exposureTime = ptrExposureTime->GetMin();
+  float exposureTime = 3.0; // 3ms
   string pixelFormat = "BayerRG8";
   string autoExposure = "Off";
 
   if(customSettings) {
     width = 100;
     height = 100;
-    exposureTime = 4;
+    exposureTime = 5.0; // 5ms
     pixelFormat = "Mono8";
   }
 
   // set exposure time
-  ptrExposureTime->SetValue(exposureTime);
+  ptrExposureTime->SetValue(exposureTime * 1000.0); // pass value in microseconds
 
   // set width
   ptrWidth->SetValue(width);
