@@ -1,0 +1,11 @@
+[camera]
+auto_exposure = "Off"
+auto_gain = "Off"
+adc_bit_depth = "Bit10"
+acquisition_mode = "Continuous"
+pixel_format = "BayerRG8"
+width = 1000
+height = 1080
+offset_x = 0
+offset_y = 0
+exposure_time = 3000 # in microseconds

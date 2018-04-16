@@ -2,151 +2,186 @@
 #include <ctime>
 #include <csignal>
 #include "Spinnaker.h"
+#include "cpptoml/cpptoml.h"
 
 using namespace Spinnaker;
 using namespace Spinnaker::GenApi;
 using namespace Spinnaker::GenICam;
 using namespace std;
 
-bool flagLoop = true;
+bool run = true;
+const string APPLICATION_NAME = "speed_test";
 
-void run(CameraPtr pCam)
-{
-  // Initialize camera
-  pCam->Init();
+void RunTest(CameraPtr pCam, string config_file) {
+  try {
+    // Initialize camera
+    pCam->Init();
 
-  // Retrieve GenICam nodemap
-  INodeMap & nodeMap = pCam->GetNodeMap();
+    // Initialize configuration
+    auto config = cpptoml::parse_file(config_file);
 
-  CIntegerPtr ptrWidth = nodeMap.GetNode("Width");
-  CIntegerPtr ptrHeight = nodeMap.GetNode("Height");
-  CIntegerPtr ptrOffsetX = nodeMap.GetNode("OffsetX");
-  CIntegerPtr ptrOffsetY = nodeMap.GetNode("OffsetY");
-  CFloatPtr   ptrExposureTime = nodeMap.GetNode("ExposureTime");
+    // Retrieve GenICam node_map
+    INodeMap & node_map = pCam->GetNodeMap();
 
-  // Set aqcuisition mode to continuous:
-  pCam->AcquisitionMode.SetValue(AcquisitionModeEnums::AcquisitionMode_Continuous);
+    CIntegerPtr ptr_width = node_map.GetNode("Width");
+    CIntegerPtr ptr_height = node_map.GetNode("Height");
+    CIntegerPtr ptr_offset_x = node_map.GetNode("OffsetX");
+    CIntegerPtr ptr_offset_y = node_map.GetNode("OffsetY");
+    CFloatPtr   ptr_exposure_time = node_map.GetNode("ExposureTime");
 
-  CEnumerationPtr ptrPixelFormat = nodeMap.GetNode("PixelFormat");
-  CEnumerationPtr ptrAcquisitionMode = nodeMap.GetNode("AcquisitionMode");
-  CEnumerationPtr ptrExposureAuto = nodeMap.GetNode("ExposureAuto");
+    CEnumerationPtr ptr_pixel_format = node_map.GetNode("PixelFormat");
+    CEnumerationPtr ptr_acquisition_mode = node_map.GetNode("AcquisitionMode");
+    CEnumerationPtr ptr_auto_exposure = node_map.GetNode("ExposureAuto");
+    CEnumerationPtr ptr_auto_gain = node_map.GetNode("GainAuto");
+    CEnumerationPtr ptr_adc_bit_depth = node_map.GetNode("AdcBitDepth");
 
-  bool customSettings = false;
+    int width = config->get_qualified_as<int>("camera.width").value_or(0);
+    int height = config->get_qualified_as<int>("camera.height").value_or(0);
+    int offset_x = config->get_qualified_as<int>("camera.offset_x").value_or(0);
+    int offset_y = config->get_qualified_as<int>("camera.offset_y").value_or(0);
+    int exposure_time = config->get_qualified_as<int>("camera.exposure_time").value_or(0);
+    string pixel_format = config->get_qualified_as<string>("camera.pixel_format").value_or("");
+    string acquisition_mode = config->get_qualified_as<string>("camera.acquisition_mode").value_or("");
+    string auto_exposure = config->get_qualified_as<string>("camera.auto_exposure").value_or("");
+    string auto_gain = config->get_qualified_as<string>("camera.auto_gain").value_or("");
+    string adc_bit_depth = config->get_qualified_as<string>("camera.adc_bit_depth").value_or("");
 
-  int width = ptrWidth->GetMax();
-  int height = ptrHeight->GetMax();
-  float exposureTime = 3.0; // 3ms
-  string pixelFormat = "BayerRG8";
-  string autoExposure = "Off";
+    // set width
+    ptr_width->SetValue(width);
 
-  if(customSettings) {
-    width = 100;
-    height = 100;
-    exposureTime = 5.0; // 5ms
-    pixelFormat = "Mono8";
-  }
+    // set height
+    ptr_height->SetValue(height);
 
-  // set width
-  ptrWidth->SetValue(width);
+    // set x offset
+    ptr_offset_x->SetValue(offset_x);
 
-  // set height
-  ptrHeight->SetValue(height);
+    // set y offset
+    ptr_offset_y->SetValue(offset_y);
 
-  //
-  // set pixel format
-  //
-  // Retrieve the desired entry node from the enumeration node
-  CEnumEntryPtr ptrPixelFormatNode = ptrPixelFormat->GetEntryByName(pixelFormat.c_str());
-  // Set integer as new value for enumeration node
-  ptrPixelFormat->SetIntValue(ptrPixelFormatNode->GetValue());
+    // Set auto gain mode
+    CEnumEntryPtr ptr_auto_gain_node = ptr_auto_gain->GetEntryByName(auto_gain.c_str());
+    ptr_auto_gain->SetIntValue(ptr_auto_gain_node->GetValue());
 
-  //
-  // set auto exposure mode
-  //
-  // Retrieve the desired entry node from the enumeration node
-  CEnumEntryPtr ptrExposureAutoNode = ptrExposureAuto->GetEntryByName(autoExposure.c_str());
-  // Set integer as new value for enumeration node
-  ptrExposureAuto->SetIntValue(ptrExposureAutoNode->GetValue());
+    // Set adc bit depth
+    CEnumEntryPtr ptr_adc_bit_depth_node = ptr_adc_bit_depth->GetEntryByName(adc_bit_depth.c_str());
+    ptr_adc_bit_depth->SetIntValue(ptr_adc_bit_depth_node->GetValue());
 
-  // set exposure time
-  ptrExposureTime->SetValue(exposureTime * 1000.0); // pass value in microseconds
+    // Set aqcuisition mode
+    CEnumEntryPtr ptr_acquisition_mode_node = ptr_acquisition_mode->GetEntryByName(acquisition_mode.c_str());
+    ptr_acquisition_mode->SetIntValue(ptr_acquisition_mode_node->GetValue());
 
-  // Get camera device information.
-  cout << "Camera device information" << endl
-    << "=========================" << endl;
-  cout << "Model            : "
-    << CStringPtr( nodeMap.GetNode( "DeviceModelName") )->GetValue() << endl;
-  cout << "Firmware version : "
-    << CStringPtr( nodeMap.GetNode( "DeviceFirmwareVersion") )->GetValue() << endl;
-  cout << "Serial number    : "
-    << CStringPtr( nodeMap.GetNode( "DeviceSerialNumber") )->GetValue() << endl;
-  cout << endl;
+    // set pixel format
+    CEnumEntryPtr ptr_pixel_format_node = ptr_pixel_format->GetEntryByName(pixel_format.c_str());
+    ptr_pixel_format->SetIntValue(ptr_pixel_format_node->GetValue());
 
-  // Camera settings
-  cout << "Camera device settings" << endl << "======================" << endl;
-  cout << "Acquisition mode : "
-    << ptrAcquisitionMode->GetCurrentEntry()->GetSymbolic() << endl;
-  cout << "Pixel format     : "
-    << ptrPixelFormat->GetCurrentEntry()->GetSymbolic() << endl;
-  cout << "Auto exposure    : "
-    << ptrExposureAuto->GetCurrentEntry()->GetSymbolic() << endl;
-  cout << "Exposure time    : "
-    << ptrExposureTime->GetValue() << endl;
-  cout << "Width            : "
-    << ptrWidth->GetValue() << endl;
-  cout << "Height           : "
-    << ptrHeight->GetValue() << endl;
-  cout << "Offset X         : "
-    << ptrOffsetX->GetValue() << endl;
-  cout << "Offset Y         : "
-    << ptrOffsetY->GetValue() << endl;
-  cout << endl;
+    // set auto exposure mode
+    CEnumEntryPtr ptr_auto_exposure_node = ptr_auto_exposure->GetEntryByName(auto_exposure.c_str());
+    ptr_auto_exposure->SetIntValue(ptr_auto_exposure_node->GetValue());
 
-  // Start aqcuisition
-  pCam->BeginAcquisition();
+    // set exposure time
+    ptr_exposure_time->SetValue(exposure_time); // pass value in microseconds
 
-  time_t timeBegin = time(0);
-  int tick = 0;
-  long frameCounter = 0;
+    // Get camera device information.
+    cout << "Camera device information" << endl
+      << "=========================" << endl;
+    cout << "Model             : "
+      << CStringPtr( node_map.GetNode( "DeviceModelName") )->GetValue() << endl;
+    cout << "Firmware version  : "
+      << CStringPtr( node_map.GetNode( "DeviceFirmwareVersion") )->GetValue() << endl;
+    cout << "Serial number     : "
+      << CStringPtr( node_map.GetNode( "DeviceSerialNumber") )->GetValue() << endl;
+    cout << "Max resolution    : "
+      << ptr_width->GetMax() << " x " << ptr_height->GetMax() << endl;
+    cout << "Min exposure time : "
+      << ptr_exposure_time->GetMin() << endl;
+    cout << endl;
 
-  cout << "Camera fps measuring" << endl
-    << "====================" << endl;
+    // Camera settings
+    cout << "Camera device settings" << endl << "======================" << endl;
+    cout << "Acquisition mode  : "
+      << ptr_acquisition_mode->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << "Pixel format      : "
+      << ptr_pixel_format->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << "ADC bit depth     : "
+      << ptr_adc_bit_depth->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << "Auto gain         : "
+      << ptr_auto_gain->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << "Auto exposure     : "
+      << ptr_auto_exposure->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << "Exposure time     : "
+      << ptr_exposure_time->GetValue() << endl;
+    cout << "Width             : "
+      << ptr_width->GetValue() << endl;
+    cout << "Height            : "
+      << ptr_height->GetValue() << endl;
+    cout << "Offset X          : "
+      << ptr_offset_x->GetValue() << endl;
+    cout << "Offset Y          : "
+      << ptr_offset_y->GetValue() << endl;
+    cout << endl;
 
-  while (flagLoop)
-  {
-    ImagePtr pResultImage = pCam->GetNextImage();
-    pResultImage->Release();
+    // Start aqcuisition
+    pCam->BeginAcquisition();
 
-    frameCounter++;
-    time_t timeNow = time(0) - timeBegin;
+    time_t time_begin = time(0);
+    int tick = 0;
+    long frame_counter = 0;
 
-    if (timeNow - tick >= 1)
-    {
-      // skip first measurment as it will not have correct fps due to warm-up
-      if(tick > 0)
-        cout << frameCounter << "fps" << endl;
+    cout << "Camera fps measuring" << endl
+      << "====================" << endl;
 
-      tick++;
-      frameCounter = 0;
+    while (run) {
+      ImagePtr pResultImage = pCam->GetNextImage();
+      pResultImage->Release();
+
+      frame_counter++;
+      time_t timeNow = time(0) - time_begin;
+
+      if (timeNow - tick >= 1) {
+        // skip first measurment as it will not have correct fps due to warm-up
+        if(tick > 0)
+          cout << frame_counter << "fps" << endl;
+
+        tick++;
+        frame_counter = 0;
+      }
     }
+
+    cout << endl;
+
+    // Deinitialize camera
+    pCam->EndAcquisition();
+    pCam->DeInit();
+  }
+  catch (Spinnaker::Exception &e) {
+    cout << "Error: " << e.what() << endl;
+  }
+}
+
+void stop(int param) {
+  run = false;
+}
+
+int main(int argc, char **argv) {
+  // Catch interupt to stop test loop
+  signal(SIGINT, stop);
+
+  // Check if config file path is passed as argument
+  if (argc != 2) {
+    cout << "usage: ";
+    cout << string(APPLICATION_NAME);
+    cout << " /path/to/config.toml" << endl;
+    exit(1);
   }
 
-  cout << endl;
+  // Assign config file value as string
+  string config_file = string(argv[1]);
 
-  // Deinitialize camera
-  pCam->EndAcquisition();
-  pCam->DeInit();
-}
-
-void raiseFlag(int param)
-{
-  flagLoop = false;
-}
-
-int main()
-{
-  // Catch interupt to stop test loop
-  signal(SIGINT, raiseFlag);
+  // Check whether config file is readable
+  if (access(config_file.c_str(), R_OK) == -1) {
+    cerr << "Config file is not readable" << endl;
+    exit(0);
+  }
 
   // Retrieve singleton reference to system object
   SystemPtr system = System::GetInstance();
@@ -160,7 +195,7 @@ int main()
   }
   else {
     // Run tests on first available camera
-    run(camList.GetByIndex(0));
+    RunTest(camList.GetByIndex(0), config_file);
   }
 
   // Clear camera list before releasing system

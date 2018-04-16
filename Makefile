@@ -28,7 +28,7 @@ CC = g++
 SRCEXT = cpp
 SOURCES = $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-INC = ${SPINNAKER_INC}
+INC = ${SPINNAKER_INC} -I lib/
 LIB = -Wl,-Bdynamic -pthread ${SPINNAKER_LIB}
 
 ################################################################################
