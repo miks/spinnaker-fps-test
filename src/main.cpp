@@ -12,6 +12,13 @@ using namespace std;
 bool run = true;
 const string APPLICATION_NAME = "speed_test";
 
+string Label(string str, const size_t num = 20, const char paddingChar = ' ') {
+  if(num > str.size())
+    str.insert(str.end(), num - str.size(), paddingChar);
+
+  return str + ": ";
+}
+
 void RunTest(CameraPtr pCam, string config_file) {
   try {
     // Initialize camera
@@ -32,6 +39,7 @@ void RunTest(CameraPtr pCam, string config_file) {
     CEnumerationPtr ptr_pixel_format = node_map.GetNode("PixelFormat");
     CEnumerationPtr ptr_acquisition_mode = node_map.GetNode("AcquisitionMode");
     CEnumerationPtr ptr_auto_exposure = node_map.GetNode("ExposureAuto");
+    CEnumerationPtr ptr_auto_white_balance = node_map.GetNode("BalanceWhiteAuto");
     CEnumerationPtr ptr_auto_gain = node_map.GetNode("GainAuto");
     CEnumerationPtr ptr_adc_bit_depth = node_map.GetNode("AdcBitDepth");
 
@@ -44,6 +52,7 @@ void RunTest(CameraPtr pCam, string config_file) {
     string acquisition_mode = config->get_qualified_as<string>("camera.acquisition_mode").value_or("");
     string auto_exposure = config->get_qualified_as<string>("camera.auto_exposure").value_or("");
     string auto_gain = config->get_qualified_as<string>("camera.auto_gain").value_or("");
+    string auto_white_balance = config->get_qualified_as<string>("camera.auto_white_balance").value_or("");
     string adc_bit_depth = config->get_qualified_as<string>("camera.adc_bit_depth").value_or("");
 
     // set width
@@ -57,6 +66,10 @@ void RunTest(CameraPtr pCam, string config_file) {
 
     // set y offset
     ptr_offset_y->SetValue(offset_y);
+
+    // Set auto white balance mode
+    CEnumEntryPtr ptr_auto_white_balance_node= ptr_auto_white_balance->GetEntryByName(auto_gain.c_str());
+    ptr_auto_white_balance->SetIntValue(ptr_auto_white_balance_node->GetValue());
 
     // Set auto gain mode
     CEnumEntryPtr ptr_auto_gain_node = ptr_auto_gain->GetEntryByName(auto_gain.c_str());
@@ -84,40 +97,26 @@ void RunTest(CameraPtr pCam, string config_file) {
     // Get camera device information.
     cout << "Camera device information" << endl
       << "=========================" << endl;
-    cout << "Model             : "
-      << CStringPtr( node_map.GetNode( "DeviceModelName") )->GetValue() << endl;
-    cout << "Firmware version  : "
-      << CStringPtr( node_map.GetNode( "DeviceFirmwareVersion") )->GetValue() << endl;
-    cout << "Serial number     : "
-      << CStringPtr( node_map.GetNode( "DeviceSerialNumber") )->GetValue() << endl;
-    cout << "Max resolution    : "
-      << ptr_width->GetMax() << " x " << ptr_height->GetMax() << endl;
-    cout << "Min exposure time : "
-      << ptr_exposure_time->GetMin() << endl;
+    cout << Label("Model") << CStringPtr( node_map.GetNode( "DeviceModelName") )->GetValue() << endl;
+    cout << Label("Firmware version") << CStringPtr( node_map.GetNode( "DeviceFirmwareVersion") )->GetValue() << endl;
+    cout << Label("Serial number") << CStringPtr( node_map.GetNode( "DeviceSerialNumber") )->GetValue() << endl;
+    cout << Label("Max resolution") << ptr_width->GetMax() << " x " << ptr_height->GetMax() << endl;
+    cout << Label("Min exposure time") << ptr_exposure_time->GetMin() << endl;
     cout << endl;
 
     // Camera settings
     cout << "Camera device settings" << endl << "======================" << endl;
-    cout << "Acquisition mode  : "
-      << ptr_acquisition_mode->GetCurrentEntry()->GetSymbolic() << endl;
-    cout << "Pixel format      : "
-      << ptr_pixel_format->GetCurrentEntry()->GetSymbolic() << endl;
-    cout << "ADC bit depth     : "
-      << ptr_adc_bit_depth->GetCurrentEntry()->GetSymbolic() << endl;
-    cout << "Auto gain         : "
-      << ptr_auto_gain->GetCurrentEntry()->GetSymbolic() << endl;
-    cout << "Auto exposure     : "
-      << ptr_auto_exposure->GetCurrentEntry()->GetSymbolic() << endl;
-    cout << "Exposure time     : "
-      << ptr_exposure_time->GetValue() << endl;
-    cout << "Width             : "
-      << ptr_width->GetValue() << endl;
-    cout << "Height            : "
-      << ptr_height->GetValue() << endl;
-    cout << "Offset X          : "
-      << ptr_offset_x->GetValue() << endl;
-    cout << "Offset Y          : "
-      << ptr_offset_y->GetValue() << endl;
+    cout << Label("Acquisition mode") << ptr_acquisition_mode->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << Label("Pixel format") << ptr_pixel_format->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << Label("ADC bit depth") << ptr_adc_bit_depth->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << Label("Auto white balance") << ptr_auto_white_balance->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << Label("Auto gain") << ptr_auto_gain->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << Label("Auto exposure") << ptr_auto_exposure->GetCurrentEntry()->GetSymbolic() << endl;
+    cout << Label("Exposure time") << ptr_exposure_time->GetValue() << endl;
+    cout << Label("Width") << ptr_width->GetValue() << endl;
+    cout << Label("Height") << ptr_height->GetValue() << endl;
+    cout << Label("Offset X") << ptr_offset_x->GetValue() << endl;
+    cout << Label("Offset Y") << ptr_offset_y->GetValue() << endl;
     cout << endl;
 
     // Start aqcuisition

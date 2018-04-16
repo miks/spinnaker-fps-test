@@ -1,6 +1,7 @@
 [camera]
 auto_exposure = "Off"
 auto_gain = "Off"
+auto_white_balance = "Off"
 adc_bit_depth = "Bit10"
 acquisition_mode = "Continuous"
 pixel_format = "BayerRG8"
