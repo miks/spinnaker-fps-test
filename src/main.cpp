@@ -124,8 +124,8 @@ void RunTest(CameraPtr pCam, string config_file) {
     pCam->BeginAcquisition();
 
     time_t time_begin = time(0);
-    int tick = 0;
-    long frame_counter = 0;
+    int frame_counter = 0;
+    bool warmed = false;
 
     cout << "Camera fps measuring" << endl
       << "====================" << endl;
@@ -134,17 +134,18 @@ void RunTest(CameraPtr pCam, string config_file) {
       ImagePtr pResultImage = pCam->GetNextImage();
       pResultImage->Release();
 
-      frame_counter++;
-      time_t timeNow = time(0) - time_begin;
-
-      if (timeNow - tick >= 1) {
-        // skip first measurment as it will not have correct fps due to warm-up
-        if(tick > 0)
+      // 1 second passed
+      if ((time(0) - time_begin) == 1) {
+        if(warmed)
           cout << frame_counter << "fps" << endl;
+        else
+          warmed = true;
 
-        tick++;
         frame_counter = 0;
+        time_begin = std::time(0);
       }
+
+      frame_counter++;
     }
 
     cout << endl;
