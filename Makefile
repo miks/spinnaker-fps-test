@@ -1,51 +1,55 @@
 ################################################################################
-# SpeedTest Makefile
+# Capture Makefile
 ################################################################################
 
 ################################################################################
 # Key paths and settings
 ################################################################################
-CFLAGS += -std=c++11
-CXX = g++ ${CFLAGS}
-ODIR  = .obj/build${D}
-SDIR  = .
-MKDIR = mkdir -p
 
-OUTPUTNAME = SpeedTest${D}
-OUTDIR = ./
+SRCDIR = src
+BUILDDIR = build
+TARGET = bin/speed_test
 
 ################################################################################
 # Dependencies
 ################################################################################
+
 # Spinnaker deps
-SPINNAKER_LIB = -L../../lib -lSpinnaker${D} ${SPIN_DEPS}
+SPINNAKER_LIB = -l Spinnaker
+SPINNAKER_INC = -isystem /usr/include/spinnaker # suppress spinnaker SDK warnings with `-isystem` include
 
 ################################################################################
 # Master inc/lib/obj/dep settings
 ################################################################################
-_OBJ = SpeedTest.o
-OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
-INC = -I../../include -isystem/usr/include/spinnaker
-LIB += -Wl,-Bdynamic ${SPINNAKER_LIB}
+
+CFLAGS = -std=c++11 -Wall
+CC = g++
+
+SRCEXT = cpp
+SOURCES = $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
+OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
+INC = ${SPINNAKER_INC}
+LIB = -Wl,-Bdynamic -pthread ${SPINNAKER_LIB}
 
 ################################################################################
 # Rules/recipes
 ################################################################################
-# Final binary
-${OUTPUTNAME}: ${OBJ}
-	${CXX} -o ${OUTPUTNAME} ${OBJ} ${LIB}
 
-# Intermediate object files
-${OBJ}: ${ODIR}/%.o : ${SDIR}/%.cpp
-	@${MKDIR} ${ODIR}
-	${CXX} ${CFLAGS} ${INC} -Wall -D LINUX -c $< -o $@
+$(TARGET): $(OBJECTS)
+	@mkdir -p $(dir $@)
+	@echo " Linking..."
+	@echo " $(CC) $^ -o $(TARGET) $(LIB)"; $(CC) $^ -o $(TARGET) $(LIB)
+
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
+	@mkdir -p $(dir $@)
+	@echo " $(CC) $(CFLAGS) $(INC) -c -o $@ $<"; $(CC) $(CFLAGS) $(INC) -c -o $@ $<
 
 # Clean up intermediate objects
 clean_obj:
-	rm -f ${OBJ}
+	rm -f ${OBJECTS}
 	@echo "intermediate objects cleaned up!"
 
 # Clean up everything.
 clean: clean_obj
-	rm -f ${OUTDIR}/${OUTPUTNAME}
+	rm -f ${TARGET}
 	@echo "all cleaned up!"
